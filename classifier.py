@@ -6,7 +6,7 @@ from datetime import datetime
 from openai import OpenAI
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
-CLICKHOUSE_HOST     = "https://bzit6h15r0.asia-southeast1.gcp.clickhouse.cloud:8443"
+CLICKHOUSE_HOST = "https://bzit6h15r0.asia-southeast1.gcp.clickhouse.cloud"
 CLICKHOUSE_USER     = "default"
 CLICKHOUSE_PASSWORD = os.getenv("CLICKHOUSE_PASSWORD", "your_password_here")
 
@@ -49,7 +49,7 @@ def ch_query(sql: str):
         CLICKHOUSE_HOST,
         data=sql,
         auth=(CLICKHOUSE_USER, CLICKHOUSE_PASSWORD),
-        timeout=10,
+        timeout=30,
     )
     resp.raise_for_status()
     return resp.text
