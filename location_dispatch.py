@@ -30,12 +30,12 @@ import math
 # ══════════════════════════════════════════════════════════
 
 DEVICE_LOCATION = {
-    "name":    "this place",
-    "address": "11 Eunos Rd 8, Singapore 408601",
-    "lat":     1.3199696867409512,    # Right-click your address on maps.google.com → copy lat
-    "lng":    103.89233526275515,  # and paste here
-    "floor":   "Level 2",
-    "notes":   "Take lift to Level 2, turn left",
+    "name":    "Sungei Gedong Camp",
+    "address": "Sungei Gedong Camp, Lim Chu Kang, Singapore",
+    "lat":     1.4205,
+    "lng":     103.7649,
+    "floor":   "",
+    "notes":   "Main entrance",
 }
 
 # ══════════════════════════════════════════════════════════
