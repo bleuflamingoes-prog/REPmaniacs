@@ -1,0 +1,183 @@
+"""
+asr_inference.py
+----------------
+Sends your recorded audio to the MERaLiON model (A*STAR / AudioBench).
+MERaLiON is trained on Singapore English (Singlish) and Mandarin Chinese,
+so it handles SG accents and code-switching natively.
+
+Model: MERaLiON-AudioLLM-Whisper-SEA-LION
+Source: https://huggingface.co/MERaLiON/MERaLiON-AudioLLM-Whisper-SEA-LION
+"""
+
+import torch
+import librosa
+import numpy as np
+
+# We load the model once and reuse it (loading takes ~30 seconds the first time)
+_model = None
+_processor = None
+
+
+def load_model():
+    """
+    Downloads and loads the MERaLiON model.
+    This only runs once — subsequent calls reuse the already-loaded model.
+    First run will download ~3GB from HuggingFace (takes a few minutes).
+    """
+    global _model, _processor
+
+    if _model is not None:
+        return  # Already loaded, skip
+
+    print("⏳ Loading MERaLiON model (first time may take a few minutes to download)...")
+
+    try:
+        from transformers import AutoProcessor, AutoModelForSpeechSeq2Seq
+
+        model_name = "MERaLiON/MERaLiON-AudioLLM-Whisper-SEA-LION"
+
+        _processor = AutoProcessor.from_pretrained(model_name)
+        _model = AutoModelForSpeechSeq2Seq.from_pretrained(
+            model_name,
+            torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+            low_cpu_mem_usage=True
+        )
+
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        _model = _model.to(device)
+
+        print(f"✅ Model loaded successfully! Running on: {device.upper()}")
+
+    except Exception as e:
+        print(f"❌ Failed to load MERaLiON model: {e}")
+        print("   Falling back to OpenAI Whisper large-v3...")
+        _load_whisper_fallback()
+
+
+def _load_whisper_fallback():
+    """Fallback: use standard Whisper large-v3 if MERaLiON fails."""
+    global _model, _processor
+
+    from transformers import WhisperProcessor, WhisperForConditionalGeneration
+
+    model_name = "openai/whisper-large-v3"
+    _processor = WhisperProcessor.from_pretrained(model_name)
+    _model = WhisperForConditionalGeneration.from_pretrained(model_name)
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    _model = _model.to(device)
+    print("✅ Whisper large-v3 fallback loaded.")
+
+
+def transcribe_audio(audio_filepath, language_hint=None):
+    """
+    Transcribes a .wav audio file to text.
+
+    Args:
+        audio_filepath: Path to the .wav file (e.g. "recorded_audio.wav")
+        language_hint:  Optional — "en" for English, "zh" for Chinese/Mandarin.
+                        Leave as None to auto-detect.
+
+    Returns:
+        A dict with:
+          - "transcript": the transcribed text (string)
+          - "language":   detected/used language code (string)
+          - "confidence": rough confidence score 0.0–1.0 (float)
+    """
+    load_model()  # Make sure model is ready
+
+    print(f"\n🔍 Transcribing: {audio_filepath}")
+
+    try:
+        # Load and resample audio to 16kHz (required by Whisper-based models)
+        audio_array, sample_rate = librosa.load(audio_filepath, sr=16000, mono=True)
+
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        # Prepare input for the model
+        inputs = _processor(
+            audio_array,
+            sampling_rate=16000,
+            return_tensors="pt"
+        ).to(device)
+
+        # Set language for forced decoding if hint provided
+        forced_decoder_ids = None
+        if language_hint:
+            forced_decoder_ids = _processor.get_decoder_prompt_ids(
+                language=language_hint,
+                task="transcribe"
+            )
+
+        # Run inference
+        with torch.no_grad():
+            generated_ids = _model.generate(
+                **inputs,
+                forced_decoder_ids=forced_decoder_ids,
+                return_dict_in_generate=True,
+                output_scores=True
+            )
+
+        # Decode the output tokens to text
+        transcript = _processor.batch_decode(
+            generated_ids.sequences,
+            skip_special_tokens=True
+        )[0].strip()
+
+        # Estimate confidence from token scores (rough approximation)
+        confidence = _estimate_confidence(generated_ids)
+
+        # Detect language label
+        detected_language = _detect_language_label(transcript, language_hint)
+
+        print(f"📝 Transcript: {transcript}")
+        print(f"🌐 Language:   {detected_language}")
+        print(f"📊 Confidence: {confidence:.2f}")
+
+        return {
+            "transcript": transcript,
+            "language": detected_language,
+            "confidence": confidence
+        }
+
+    except Exception as e:
+        print(f"❌ Transcription failed: {e}")
+        return {
+            "transcript": "",
+            "language": "unknown",
+            "confidence": 0.0
+        }
+
+
+def _estimate_confidence(generated_ids):
+    """
+    Estimates confidence from model output scores.
+    Returns a value between 0.0 (low confidence) and 1.0 (high confidence).
+    """
+    try:
+        if hasattr(generated_ids, "scores") and generated_ids.scores:
+            scores = torch.stack(generated_ids.scores, dim=1)
+            probs = torch.softmax(scores, dim=-1)
+            max_probs = probs.max(dim=-1).values
+            return float(max_probs.mean().item())
+    except Exception:
+        pass
+    return 0.85  # Default if we can't compute it
+
+
+def _detect_language_label(transcript, language_hint):
+    """
+    Returns a human-readable language label.
+    Checks for Chinese characters to identify Mandarin.
+    """
+    if language_hint == "zh":
+        return "zh-CN (Mandarin)"
+    if language_hint == "en":
+        return "en-SG (Singapore English)"
+
+    # Auto-detect: check if transcript contains Chinese characters
+    has_chinese = any("\u4e00" <= char <= "\u9fff" for char in transcript)
+    if has_chinese:
+        return "zh-CN (Mandarin / Code-switch)"
+
+    return "en-SG (Singapore English)"

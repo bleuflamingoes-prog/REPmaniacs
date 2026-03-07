@@ -1,0 +1,23 @@
+# Python dependencies for the SG Speech Help Button System
+# Install all of these by running:  pip install -r requirements.txt
+
+# Audio recording from microphone
+sounddevice>=0.4.6
+soundfile>=0.12.1
+
+# Audio loading and resampling
+librosa>=0.10.0
+
+# MERaLiON / Whisper model (A*STAR AudioBench)
+torch>=2.0.0
+transformers>=4.40.0
+accelerate>=0.27.0
+
+# ClickHouse database client
+clickhouse-connect>=0.7.0
+
+# Keyboard listener (for SPACE BAR button simulation)
+pynput>=1.7.6
+
+# Utility
+numpy>=1.24.0
