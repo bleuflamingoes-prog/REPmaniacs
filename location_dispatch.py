@@ -29,7 +29,7 @@ import math
 # ══════════════════════════════════════════════════════════
 # ✏️  EDIT THIS — your fixed device location
 # ══════════════════════════════════════════════════════════
-DDEVICE_LOCATION = {
+DEVICE_LOCATION = {
    "name":    "this place",
    "address": "11 Eunos Rd 8, Singapore 408601",
    "lat":     1.3199696867409512,    # Right-click your address on maps.google.com → copy lat
