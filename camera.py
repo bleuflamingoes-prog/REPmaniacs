@@ -36,7 +36,7 @@ CH_HOST     = os.getenv("CH_HOST",     "bzit6h15r0.asia-southeast1.gcp.clickhous
 CH_PORT     = int(os.getenv("CH_PORT", 9440))
 CH_DB       = os.getenv("CH_DATABASE", "default")
 CH_USER     = os.getenv("CH_USER",     "default")
-CH_PASSWORD = os.getenv("CH_PASSWORD", "2ai.gMRWIooUB")
+CH_PASSWORD = os.getenv("CH_PASSWORD", "o2W9Zxcl1.p3x")
 
 MODEL_PATH     = "pose_landmarker.task"  # downloaded by download_model.py
 CAMERA_INDEX   = 0      # 0 = default laptop webcam
