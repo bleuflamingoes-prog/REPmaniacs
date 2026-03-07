@@ -4,7 +4,6 @@ CONFIDENCE_THRESHOLD = 0.45
 MIN_WORD_COUNT = 2
 
 NON_EMERGENCY_PHRASES = [
-    "hungry", "thirsty", "i want food", "i want water",
     "where is the toilet", "where's the toilet", "toilet", "bathroom", "restroom",
     "i need to pee", "bored", "boring", "testing", "test",
     "one two three", "1 2 3", "mic test", "is this working", "can you hear me",
@@ -20,7 +19,7 @@ EMERGENCY_KEYWORDS = [
     "broke", "broken", "scared", "threatening", "knife", "weapon",
     "please", "urgent", "serious", "bad", "wrong", "problem",
     "police", "ambulance", "doctor", "nurse",
-    "outside", "door", "someone", "people", "stranger",
+    "outside", "door", "someone", "people", "stranger", "dizzy", "unwell",
 ]
 
 def check_audio_errors(transcript, confidence, attempt=1):

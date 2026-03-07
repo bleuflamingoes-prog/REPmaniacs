@@ -1,16 +1,13 @@
 """
-GOAL 4: Emergency Dispatch — reads gpt_classifier → sends SMS via Vonage
-=========================================================================
-Reads dispatch_team from gpt_classifier (written by your classifier code).
-Sends SMS alerts via Vonage — only needs API key + secret, no application needed.
-
+GOAL 4: Emergency Dispatch — reads gpt_classifier → sends SMS via Vonage v4
+============================================================================
 Install:
     pip install vonage requests python-dotenv
 
 Setup:
     1. Sign up at dashboard.nexmo.com (free, no credit card)
     2. Copy API Key and API Secret from the dashboard homepage
-    3. Fill in the CONFIG block below
+    3. Fill in CONFIG below
 """
 
 import os
@@ -20,7 +17,8 @@ import requests
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 
-import vonage
+from vonage import Vonage, Auth
+from vonage_sms import SmsMessage
 
 load_dotenv()
 
@@ -28,56 +26,65 @@ load_dotenv()
 # CONFIG
 # ──────────────────────────────────────────────────────────
 
-# Vonage — only needs key + secret for SMS (no application required)
 VONAGE_API_KEY    = os.getenv("VONAGE_API_KEY",    "22e77ff6")
 VONAGE_API_SECRET = os.getenv("VONAGE_API_SECRET", "wZPVCwekUshCOm03")
-VONAGE_FROM_NAME  = "EmergencyAlert"   # Sender name shown on SMS (max 11 chars)
+VONAGE_FROM_NAME  = "EmergencyAlert"   # Sender name on SMS (max 11 chars)
 
 # ── Who to SMS for each dispatch team ─────────────────────
-# Replace with real Singapore +65 numbers
+# Replace with real Singapore +65 numbers (WITH + sign)
 DISPATCH_CONTACTS = {
-    "ambulance":   ["+6594510267"],   # next of kin — they call 995
-    "police":      ["+6590299265"],   # next of kin — they call 999
-    "fire":        ["+6589592135"],   # next of kin — they call 995
-    "social_work": ["+6580232395"],   # next of kin / social worker
-    "none":        [],                # no action needed
+    "ambulance":   ["+6590299265"],
+    "police":      ["+6590299265"],
+    "fire":        ["+6590299265"],
+    "social_work": ["+6590299265"],
+    "none":        [],
 }
 
 # ── SMS message for each dispatch team ────────────────────
 DISPATCH_MESSAGES = {
     "ambulance": (
         "EMERGENCY ALERT 🚑\n"
-        "An elderly needs MEDICAL help.\n"
-        "Please dispatch ambulance now.\n"
+        "Your elderly family member needs MEDICAL help.\n"
+        "Please call 995 immediately or go to them now.\n"
     ),
     "police": (
         "EMERGENCY ALERT 🚓\n"
-        "A safety/security concern has been detected at an elderly's home.\n"
-        "Please dispatch officers immediately.\n"
+        "A safety/security concern has been detected at your "
+        "elderly family member's home.\n"
+        "Please call 999 or check on them immediately.\n"
     ),
     "fire": (
         "EMERGENCY ALERT 🚒\n"
         "A fire or gas hazard may have been detected.\n"
-        "Please dispatch firefighters immediately.\n"
+        "Please call 995 (SCDF) immediately.\n"
     ),
     "social_work": (
         "WELFARE ALERT 👤\n"
-        "A non-urgent concern has been flagged for an elderly.\n"
+        "A non-urgent concern has been flagged for your "
+        "elderly family member.\n"
         "Please check on them when possible.\n"
     ),
 }
 
-# ── ClickHouse (HTTP API — same style as your classifier) ──
+# ── ClickHouse (HTTP API — same as your classifier) ───────
 CLICKHOUSE_HOST     = os.getenv("CLICKHOUSE_HOST",
                                 "https://bzit6h15r0.asia-southeast1.gcp.clickhouse.cloud:8443")
 CLICKHOUSE_USER     = os.getenv("CLICKHOUSE_USER",     "default")
+<<<<<<< HEAD
 CLICKHOUSE_PASSWORD = os.getenv("CLICKHOUSE_PASSWORD", "2o2W9Zxcl1.p3x")
+=======
+CLICKHOUSE_PASSWORD = os.getenv("CLICKHOUSE_PASSWORD", "o2W9Zxcl1.p3x")
+>>>>>>> 7b88c96b6e620d1b9a15337eb265452730e34e20
 
 POLL_INTERVAL = 5   # seconds between ClickHouse checks
 
 
 # ──────────────────────────────────────────────────────────
+<<<<<<< HEAD
 # CLICKHOUSE HELPERS (HTTP — matches your classifier style
+=======
+# CLICKHOUSE HELPERS (HTTP — same style as your classifier)
+>>>>>>> 7b88c96b6e620d1b9a15337eb265452730e34e20
 # ──────────────────────────────────────────────────────────
 
 def ch_query(sql: str) -> str:
@@ -85,13 +92,14 @@ def ch_query(sql: str) -> str:
         CLICKHOUSE_HOST,
         data=sql,
         auth=(CLICKHOUSE_USER, CLICKHOUSE_PASSWORD),
-        timeout=30,   # was 10 — increased to 30s
+        timeout=30,
     )
     resp.raise_for_status()
     return resp.text
 
 
 def init_db() -> None:
+    """Create dispatched_log table for audit trail. Non-blocking on failure."""
     try:
         ch_query("""
             CREATE TABLE IF NOT EXISTS dispatched_log
@@ -114,10 +122,11 @@ def init_db() -> None:
         print(f"[ClickHouse] ⚠  Could not create dispatched_log: {e}")
         print("[ClickHouse] Continuing without dispatch logging...")
 
+
 def fetch_pending_dispatches(already_seen: set) -> list[dict]:
     """
     Read new rows from gpt_classifier that haven't been dispatched yet.
-    Filters out 'none' dispatch team and already seen events.
+    Filters out 'none' dispatch team and already seen event IDs.
     """
     sql = """
         SELECT
@@ -139,7 +148,6 @@ def fetch_pending_dispatches(already_seen: set) -> list[dict]:
     try:
         result = ch_query(sql)
         rows   = json.loads(result).get("data", [])
-        # Filter out already-dispatched events
         return [r for r in rows if r["event_id"] not in already_seen]
     except Exception as e:
         print(f"[ClickHouse] ⚠  Fetch failed: {e}")
@@ -148,8 +156,8 @@ def fetch_pending_dispatches(already_seen: set) -> list[dict]:
 
 def log_dispatch(event_id: str, dispatch_team: str, urgency: str,
                  numbers: list, transcript: str, reason: str, source: str) -> None:
-    """Save a record of what was dispatched for audit trail."""
-    numbers_str = json.dumps(numbers).replace("'", "\\'")
+    """Save dispatch record to ClickHouse for audit trail."""
+    numbers_str     = json.dumps(numbers).replace("'", "\\'")
     transcript_safe = transcript.replace("'", "\\'")[:500]
     reason_safe     = reason.replace("'", "\\'")
 
@@ -175,37 +183,42 @@ def log_dispatch(event_id: str, dispatch_team: str, urgency: str,
 
 
 # ──────────────────────────────────────────────────────────
-# VONAGE SMS
+# VONAGE SMS  (v4 SDK)
 # ──────────────────────────────────────────────────────────
+
+def get_vonage_client() -> Vonage:
+    """Create Vonage v4 client — only needs API key + secret for SMS."""
+    return Vonage(Auth(
+        api_key=VONAGE_API_KEY,
+        api_secret=VONAGE_API_SECRET,
+    ))
+
 
 def send_sms(to_number: str, message: str) -> bool:
     """
-    Send an SMS via Vonage.
-    Only needs API key + secret — no application or private key required.
-
-    to_number: full number with country code, e.g. '+6591234567'
+    Send SMS via Vonage v4 SDK.
+    to_number: full number with + e.g. '+6591234567'
     Returns True if sent successfully.
     """
     try:
-        client = vonage.Client(
-            key=VONAGE_API_KEY,
-            secret=VONAGE_API_SECRET,
+        client = get_vonage_client()
+
+        # Vonage v4 — SmsMessage from vonage_sms package
+        sms_message = SmsMessage(
+            to=to_number.replace("+", ""),  # Vonage wants no + prefix
+            from_=VONAGE_FROM_NAME,
+            text=message,
         )
-        sms = vonage.Sms(client)
 
-        response = sms.send_message({
-            "from": VONAGE_FROM_NAME,
-            "to":   to_number.replace("+", ""),  # Vonage wants no + prefix
-            "text": message,
-        })
+        response = client.sms.send(sms_message)
 
-        status = response["messages"][0]["status"]
-        if status == "0":
+        # v4 response: check first message status
+        first = response.messages[0]
+        if first.status == "0":
             print(f"[Vonage] ✅  SMS sent to {to_number}")
             return True
         else:
-            error = response["messages"][0].get("error-text", "unknown error")
-            print(f"[Vonage] ⚠  SMS to {to_number} failed: {error}")
+            print(f"[Vonage] ⚠  SMS to {to_number} failed: {first.error_text}")
             return False
 
     except Exception as e:
@@ -217,7 +230,6 @@ def send_sms(to_number: str, message: str) -> bool:
 # DISPATCH ONE EVENT
 # ──────────────────────────────────────────────────────────
 
-# Icons for display
 TEAM_ICONS = {
     "ambulance":   "🚑",
     "police":      "🚓",
@@ -226,10 +238,11 @@ TEAM_ICONS = {
     "none":        "✅",
 }
 
+
 def dispatch(row: dict) -> None:
     """
     Handle one classified emergency from gpt_classifier:
-      1. Get the right contacts + message
+      1. Get the right contacts + message for the dispatch_team
       2. Send SMS to each contact
       3. Log to dispatched_log in ClickHouse
     """
@@ -258,12 +271,15 @@ def dispatch(row: dict) -> None:
         log_dispatch(event_id, dispatch_team, urgency, [], transcript, reason, source)
         return
 
-    # Build SMS — base message + details
-    base_message = DISPATCH_MESSAGES.get(dispatch_team, "EMERGENCY: Check on elderly person now.")
-    detail_line  = f"Details: {reason}"
+    # Build SMS message — base + reason detail
+    base_message = DISPATCH_MESSAGES.get(
+        dispatch_team,
+        "EMERGENCY: Check on elderly person now."
+    )
+    detail = f"Details: {reason}"
     if alert_type and alert_type != "voice":
-        detail_line += f" ({alert_type})"
-    full_message = base_message + detail_line
+        detail += f" ({alert_type})"
+    full_message = base_message + detail
 
     numbers_sent = []
     for number in contacts:
@@ -283,9 +299,9 @@ def dispatch(row: dict) -> None:
 
 def run_polling_loop() -> None:
     """
-    Poll gpt_classifier every POLL_INTERVAL seconds.
+    Mirrors your classifier's polling loop style.
+    Polls gpt_classifier every POLL_INTERVAL seconds.
     Sends SMS for any new classified emergencies.
-    Mirrors the style of your existing classifier polling loop.
     Press Ctrl+C to stop.
     """
     print("\n" + "="*60)
