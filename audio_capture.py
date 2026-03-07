@@ -6,12 +6,11 @@ No coding knowledge needed — just call record_audio() and it saves a .wav file
 """
 
 import sounddevice as sd
-import soundfile as sf
+import soundfile as sfpy
 import numpy as np
 
 SAMPLE_RATE = 16000   # 16kHz is what Whisper expects
 CHANNELS = 1          # Mono audio
-
 
 def record_audio(duration_seconds=10, output_filename="recorded_audio.wav"):
     """
