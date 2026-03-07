@@ -11,4 +11,4 @@ else:
     urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
     print(f"Downloaded to '{MODEL_PATH}' ✓")
 
-print("\nYou can now run:  py goal3_camera.py")
+print("\nYou can now run: camera.py")
