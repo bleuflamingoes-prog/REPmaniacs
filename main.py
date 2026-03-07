@@ -197,7 +197,6 @@ if __name__ == "__main__":
     parser.add_argument("--view", action="store_true",
                         help="View stored transcriptions in ClickHouse")
     args = parser.parse_args()
-
     # Always set up the database table first
     print("🔧 Setting up ClickHouse table...")
     setup_table()

@@ -18,10 +18,10 @@ from datetime import datetime
 import uuid
 
 # ── Connection settings ──────────────────────────────────────────────────────
-HOST     = "localhost"
-PORT     = 8123
+HOST     = "bzit6h15r0.asia-southeast1.gcp.clickhouse.cloud"
+PORT     = 8443
 USERNAME = "default"
-PASSWORD = ""          # Change this if you set a ClickHouse password
+PASSWORD = "2ai.gMRWIooUB"          # Change this if you set a ClickHouse password
 DATABASE = "default"
 TABLE    = "speech_events"
 # ─────────────────────────────────────────────────────────────────────────────
