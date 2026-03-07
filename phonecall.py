@@ -69,7 +69,7 @@ DISPATCH_MESSAGES = {
 
 # ── ClickHouse (HTTP API — same style as your classifier) ──
 CLICKHOUSE_HOST     = os.getenv("CLICKHOUSE_HOST",
-                                "https://bzit6h15r0.asia-southeast1.gcp.clickhouse.cloud:8443")
+                                "https://bzit6h15r0.asia-southeast1.gcp.clickhouse.cloud:443")
 CLICKHOUSE_USER     = os.getenv("CLICKHOUSE_USER",     "default")
 CLICKHOUSE_PASSWORD = os.getenv("CLICKHOUSE_PASSWORD", "2ai.gMRWIooUB")
 
@@ -85,35 +85,34 @@ def ch_query(sql: str) -> str:
         CLICKHOUSE_HOST,
         data=sql,
         auth=(CLICKHOUSE_USER, CLICKHOUSE_PASSWORD),
-        timeout=10,
+        timeout=30,   # was 10 — increased to 30s
     )
     resp.raise_for_status()
     return resp.text
 
 
 def init_db() -> None:
-    """
-    Create a dispatched_log table to track what has been sent.
-    Also adds a 'dispatched' column to gpt_classifier if not present.
-    """
-    ch_query("""
-        CREATE TABLE IF NOT EXISTS dispatched_log
-        (
-            event_id      String,
-            dispatched_at DateTime,
-            dispatch_team String,
-            urgency_level String,
-            numbers_sms   String,
-            transcript    String,
-            reason        String,
-            source        String
-        )
-        ENGINE = MergeTree()
-        ORDER BY (dispatched_at, event_id)
-        TTL dispatched_at + INTERVAL 90 DAY
-    """)
-    print("[ClickHouse] dispatched_log table ready ✓")
-
+    try:
+        ch_query("""
+            CREATE TABLE IF NOT EXISTS dispatched_log
+            (
+                event_id      String,
+                dispatched_at DateTime,
+                dispatch_team String,
+                urgency_level String,
+                numbers_sms   String,
+                transcript    String,
+                reason        String,
+                source        String
+            )
+            ENGINE = MergeTree()
+            ORDER BY (dispatched_at, event_id)
+            TTL dispatched_at + INTERVAL 90 DAY
+        """)
+        print("[ClickHouse] dispatched_log table ready ✓")
+    except Exception as e:
+        print(f"[ClickHouse] ⚠  Could not create dispatched_log: {e}")
+        print("[ClickHouse] Continuing without dispatch logging...")
 
 def fetch_pending_dispatches(already_seen: set) -> list[dict]:
     """
