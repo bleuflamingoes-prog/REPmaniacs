@@ -30,12 +30,12 @@ import math
 # ══════════════════════════════════════════════════════════
 
 DEVICE_LOCATION = {
-    "name":    "Sungei Gedong Camp",
-    "address": "Sungei Gedong Camp, Lim Chu Kang, Singapore",
-    "lat":     1.4205,
-    "lng":     103.7649,
-    "floor":   "",
-    "notes":   "Main entrance",
+   "name":    "this place",
+   "address": "11 Eunos Rd 8, Singapore 408601",
+   "lat":     1.3199696867409512,    # Right-click your address on maps.google.com → copy lat
+   "lng":    103.89233526275515,  # and paste here
+   "floor":   "Level 2",
+   "notes":   "Take lift to Level 2, turn left",
 }
 
 # ══════════════════════════════════════════════════════════
@@ -55,7 +55,7 @@ OPEN_IN_BROWSER  = True   # Auto-open Google Maps route in browser
 
 SG_AE_HOSPITALS = [
     {"name": "Singapore General Hospital (SGH)",       "lat": 1.27940, "lng": 103.83490},
-    {"name": "Changi General Hospital (CGH)",          "lat": 1.34057, "lng": 103.94920},
+    {"name": "Changi General Hospital (CGH)",          "lat": 1.3402386261366204, "lng": 103.94956237334395},
     {"name": "Tan Tock Seng Hospital (TTSH)",          "lat": 1.32130, "lng": 103.84580},
     {"name": "National University Hospital (NUH)",     "lat": 1.29450, "lng": 103.78280},
     {"name": "Khoo Teck Puat Hospital (KTPH)",         "lat": 1.42430, "lng": 103.83850},
