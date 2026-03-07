@@ -71,7 +71,7 @@ CLICKHOUSE_HOST     = os.getenv("CLICKHOUSE_HOST",
                                 "https://bzit6h15r0.asia-southeast1.gcp.clickhouse.cloud:8443")
 CLICKHOUSE_USER     = os.getenv("CLICKHOUSE_USER",     "default")
 <<<<<<< HEAD
-CLICKHOUSE_PASSWORD = os.getenv("CLICKHOUSE_PASSWORD", "2o2W9Zxcl1.p3x")
+CLICKHOUSE_PASSWORD = os.getenv("CLICKHOUSE_PASSWORD", "o2W9Zxcl1.p3x")
 =======
 CLICKHOUSE_PASSWORD = os.getenv("CLICKHOUSE_PASSWORD", "o2W9Zxcl1.p3x")
 >>>>>>> 7b88c96b6e620d1b9a15337eb265452730e34e20
