@@ -12,6 +12,7 @@ from audio_error_handler_2nd_ed import check_audio_errors, handle_audio_error, p
 RECORDING_DURATION = 10
 AUDIO_OUTPUT_DIR   = "audio_recordings"
 
+
 def ensure_audio_folder():
     if not os.path.exists(AUDIO_OUTPUT_DIR):
         os.makedirs(AUDIO_OUTPUT_DIR)

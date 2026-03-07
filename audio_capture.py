@@ -6,7 +6,7 @@ No coding knowledge needed — just call record_audio() and it saves a .wav file
 """
 
 import sounddevice as sd
-import soundfile as sfpy
+import soundfile as sf
 import numpy as np
 
 SAMPLE_RATE = 16000   # 16kHz is what Whisper expects
