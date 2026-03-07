@@ -4,9 +4,10 @@ import time
 import requests
 from datetime import datetime
 from openai import OpenAI
+from location_dispatch import trigger_dispatch
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
-CLICKHOUSE_HOST = "https://bzit6h15r0.asia-southeast1.gcp.clickhouse.cloud"
+CLICKHOUSE_HOST     = "https://bzit6h15r0.asia-southeast1.gcp.clickhouse.cloud"
 CLICKHOUSE_USER     = "default"
 CLICKHOUSE_PASSWORD = os.getenv("CLICKHOUSE_PASSWORD", "your_password_here")
 
@@ -16,32 +17,26 @@ client              = OpenAI(api_key=OPENAI_API_KEY)
 POLL_INTERVAL_SEC   = 5
 
 # ── DISPATCH MATRIX ───────────────────────────────────────────────────────────
-# (dispatch_team, urgency_level) → (number, action description)
 DISPATCH_MATRIX = {
-    ("ambulance", "high"):   ("995",             "🚑 EMERGENCY — Calling 995 for Emergency Ambulance"),
-    ("ambulance", "medium"): ("1777",             "🚑 URGENT — Calling 1777 SCDF Non-Emergency Ambulance"),
-    ("ambulance", "low"):    ("POLYCLINIC",       "🏥 LOW — Alerting nearest polyclinic for welfare check"),
-
-    ("fire", "high"):        ("995",              "🚒 EMERGENCY — Calling 995 for SCDF Fire & Rescue"),
-    ("fire", "medium"):      ("1777",             "🚒 URGENT — Calling 1777 SCDF Non-Emergency"),
-    ("fire", "low"):         ("BLDG-MGMT",        "🏢 LOW — Alerting building management"),
-
-    ("police", "high"):      ("999",              "🚓 EMERGENCY — Calling 999 for Police"),
-    ("police", "medium"):    ("1800-255-0000",    "🚓 URGENT — Calling 1800-255-0000 Police Non-Emergency"),
-    ("police", "low"):       ("COMMUNITY-SAFETY", "👮 LOW — Flagging to community safety officer"),
-
-    ("social_work", "high"): ("1800-225-5227",   "👤 URGENT — Calling 1800-CALL-PAP for urgent welfare"),
-    ("social_work", "medium"):("1800-225-5227",  "👤 WELFARE — Calling 1800-CALL-PAP for welfare check"),
-    ("social_work", "low"):  ("FRIENDLY-VISIT",  "🤝 LOW — Scheduling friendly visitor programme"),
-
-    ("none", "high"):        ("995",              "⚠️  HIGH but unclear — defaulting to 995"),
-    ("none", "medium"):      ("1777",             "⚠️  MEDIUM but unclear — calling 1777"),
-    ("none", "low"):         ("NO-ACTION",        "✅ No action required"),
+    ("ambulance", "high"):    ("995",              "🚑 EMERGENCY — Calling 995 for Emergency Ambulance"),
+    ("ambulance", "medium"):  ("1777",             "🚑 URGENT — Calling 1777 SCDF Non-Emergency Ambulance"),
+    ("ambulance", "low"):     ("POLYCLINIC",       "🏥 LOW — Alerting nearest polyclinic for welfare check"),
+    ("fire", "high"):         ("995",              "🚒 EMERGENCY — Calling 995 for SCDF Fire & Rescue"),
+    ("fire", "medium"):       ("1777",             "🚒 URGENT — Calling 1777 SCDF Non-Emergency"),
+    ("fire", "low"):          ("BLDG-MGMT",        "🏢 LOW — Alerting building management"),
+    ("police", "high"):       ("999",              "🚓 EMERGENCY — Calling 999 for Police"),
+    ("police", "medium"):     ("1800-255-0000",    "🚓 URGENT — Calling 1800-255-0000 Police Non-Emergency"),
+    ("police", "low"):        ("COMMUNITY-SAFETY", "👮 LOW — Flagging to community safety officer"),
+    ("social_work", "high"):  ("1800-225-5227",    "👤 URGENT — Calling 1800-CALL-PAP for urgent welfare"),
+    ("social_work", "medium"):("1800-225-5227",    "👤 WELFARE — Calling 1800-CALL-PAP for welfare check"),
+    ("social_work", "low"):   ("FRIENDLY-VISIT",   "🤝 LOW — Scheduling friendly visitor programme"),
+    ("none", "high"):         ("995",              "⚠️  HIGH but unclear — defaulting to 995"),
+    ("none", "medium"):       ("1777",             "⚠️  MEDIUM but unclear — calling 1777"),
+    ("none", "low"):          ("NO-ACTION",        "✅ No action required"),
 }
 
 def get_dispatch(team: str, urgency: str):
-    key = (team, urgency)
-    return DISPATCH_MATRIX.get(key, ("UNKNOWN", "⚠️ No matching dispatch rule found"))
+    return DISPATCH_MATRIX.get((team, urgency), ("UNKNOWN", "⚠️ No matching dispatch rule found"))
 
 # ── CLICKHOUSE HELPERS ────────────────────────────────────────────────────────
 def ch_query(sql: str):
@@ -210,8 +205,11 @@ def dispatch(event_id: str, transcript: str, location: str, result: dict,
     print(f"  ACTION:      {dispatch_action}")
     print(f"{'='*60}\n")
 
-    # TODO: plug in real calls here e.g. Twilio to dial dispatch_number
+    # Trigger geolocation for high urgency — opens Google Maps automatically
+    if urgency == "high":
+        trigger_dispatch("audio" if source == "VOICE" else "video")
 
+    # Save to ClickHouse
     save_dispatch_result(
         event_id=event_id,
         transcript=transcript,
@@ -281,4 +279,3 @@ def run_polling_loop():
 # ── ENTRY POINT ───────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     run_polling_loop()
-
