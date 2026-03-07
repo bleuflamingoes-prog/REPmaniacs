@@ -67,7 +67,7 @@ SG_POLYCLINICS = [
     {"name": "Bukit Merah Polyclinic",    "lat": 1.28410, "lng": 103.81640},
     {"name": "Choa Chu Kang Polyclinic",  "lat": 1.38540, "lng": 103.74540},
     {"name": "Clementi Polyclinic",       "lat": 1.31520, "lng": 103.76520},
-    {"name": "Geylang Polyclinic",        "lat": 1.3194500585899724, "lng": 103.88728835374104},
+    {"name": "Geylang Polyclinic",        "lat": 1.3193562534246173, "lng": 103.88726903673604}, 
     {"name": "Hougang Polyclinic",        "lat": 1.37130, "lng": 103.89360},
     {"name": "Jurong Polyclinic",         "lat": 1.34380, "lng": 103.70630},
     {"name": "Kallang Polyclinic",        "lat": 1.31060, "lng": 103.86650},
@@ -101,7 +101,7 @@ SG_NPCS = [
     {"name": "Bedok North NPC",            "lat": 1.33450, "lng": 103.93120},
     {"name": "Bukit Timah NPC",            "lat": 1.33450, "lng": 103.77540},
     {"name": "Clementi NPC",               "lat": 1.31520, "lng": 103.76520},
-    {"name": "Geylang NPC",                "lat": 1.311752354672445, "lng": 103.88601744393081},
+    {"name": "Geylang NPC",                "lat": 1.3109866736928926, "lng": 103.88617825682896},
     {"name": "Hougang NPC",                "lat": 1.37290, "lng": 103.89230},
     {"name": "Jurong East NPC",            "lat": 1.33380, "lng": 103.74210},
     {"name": "Pasir Ris NPC",              "lat": 1.37310, "lng": 103.94850},
@@ -125,7 +125,7 @@ SG_SENIOR_ACTIVITY_CENTRES = [
 ]
 
 SG_PAPCP_CENTRES = [
-    {"name": "PAP Community Foundation Geylang",    "lat": 1.3195767057294459, "lng": 103.88520941046815},
+    {"name": "PAP Community Foundation Geylang",    "lat": 1.3192599975797068, "lng": 103.88545838491339},
     {"name": "PAP Community Foundation Tampines",   "lat": 1.35280, "lng": 103.94340},
     {"name": "PAP Community Foundation Ang Mo Kio", "lat": 1.36940, "lng": 103.84760},
     {"name": "PAP Community Foundation Woodlands",  "lat": 1.43700, "lng": 103.78650},
