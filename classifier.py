@@ -15,7 +15,6 @@ OPENAI_API_KEY      = os.getenv("OPENAI_API_KEY", "your_openai_key_here")
 client              = OpenAI(api_key=OPENAI_API_KEY)
 
 POLL_INTERVAL_SEC   = 5
-CAMERA_ALERT_TYPES  = {"fall", "unresponsive"}  # Only these trigger dispatch
 
 # ── DISPATCH TEAMS ────────────────────────────────────────────────────────────
 DISPATCH_TEAMS = {
@@ -51,10 +50,7 @@ def fetch_new_voice_transcripts(already_seen: set) -> list:
     return [r for r in rows if r["event_id"] not in already_seen]
 
 def fetch_new_camera_events(already_seen: set) -> list:
-    """
-    Reads new rows from camera_events.
-    Only returns rows where alert_type is 'fall' or 'unresponsive'.
-    """
+    """Reads new fall/unresponsive events from camera_events."""
     sql = """
         SELECT event_id, alert_type, confidence, pose_state, still_duration, notes, detected_at
         FROM camera_events
@@ -68,11 +64,13 @@ def fetch_new_camera_events(already_seen: set) -> list:
     return [r for r in rows if r["event_id"] not in already_seen]
 
 def save_dispatch_result(event_id: str, transcript: str, urgency: str,
-                          confidence: float, location: str, audio_path: str):
-    """Saves the classified result into gpt_classifier for the dashboard."""
+                          confidence: float, location: str, audio_path: str,
+                          dispatch_team: str, source: str, alert_type: str, reason: str):
+    """Saves the fully classified result into gpt_classifier."""
     sql = f"""
     INSERT INTO gpt_classifier
-        (event_id, timestamp, caller_id, transcript, urgency_level, confidence, location, audio_url)
+        (event_id, timestamp, caller_id, transcript, urgency_level, confidence,
+         location, audio_url, dispatch_team, source, alert_type, reason)
     VALUES (
         '{event_id}',
         '{datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")}',
@@ -81,7 +79,11 @@ def save_dispatch_result(event_id: str, transcript: str, urgency: str,
         '{urgency}',
         {confidence},
         '{location}',
-        '{audio_path}'
+        '{audio_path}',
+        '{dispatch_team}',
+        '{source}',
+        '{alert_type}',
+        '{reason.replace("'", "''")}'
     )
     """
     ch_query(sql)
@@ -141,7 +143,7 @@ Return ONLY valid JSON, no other text.
 
 # ── DISPATCH ACTION ───────────────────────────────────────────────────────────
 def dispatch(event_id: str, transcript: str, location: str, result: dict,
-             audio_path: str = "", source: str = "VOICE"):
+             audio_path: str = "", source: str = "VOICE", alert_type: str = ""):
     team    = result.get("dispatch_team", "none")
     urgency = result.get("urgency_level", "low")
     conf    = result.get("confidence", 0)
@@ -154,12 +156,24 @@ def dispatch(event_id: str, transcript: str, location: str, result: dict,
     print(f"  🆘 NEW EMERGENCY — SOURCE: {source_icon} {source}")
     print(f"  EVENT:      {event_id}")
     print(f"  TRANSCRIPT: {transcript[:80]}")
+    print(f"  ALERT TYPE: {alert_type if alert_type else 'voice'}")
     print(f"  URGENCY:    {urgency.upper()}  |  CONFIDENCE: {conf:.0%}")
     print(f"  REASON:     {reason}")
     print(f"  ACTION:     {action}")
     print(f"{'='*60}\n")
 
-    save_dispatch_result(event_id, transcript, urgency, conf, location, audio_path)
+    save_dispatch_result(
+        event_id=event_id,
+        transcript=transcript,
+        urgency=urgency,
+        confidence=conf,
+        location=location,
+        audio_path=audio_path,
+        dispatch_team=team,
+        source=source,
+        alert_type=alert_type,
+        reason=reason,
+    )
 
 # ── POLLING LOOP ──────────────────────────────────────────────────────────────
 def run_polling_loop():
@@ -185,7 +199,8 @@ def run_polling_loop():
                     audio_path = row.get("audio_path", "")
                     print(f"  🎙️  Voice received: '{transcript[:60]}...'")
                     result = classify_voice(transcript)
-                    dispatch(event_id, transcript, "Unknown", result, audio_path, source="VOICE")
+                    dispatch(event_id, transcript, "Unknown", result,
+                             audio_path=audio_path, source="VOICE", alert_type="voice")
                     seen_voice.add(event_id)
 
             # ── CAMERA events ─────────────────────────────────────────────
@@ -194,15 +209,16 @@ def run_polling_loop():
                 print(f"  📷  No new camera alerts...")
             else:
                 for row in camera_rows:
-                    event_id      = row["event_id"]
-                    alert_type    = row["alert_type"]
-                    pose_state    = row.get("pose_state", "")
+                    event_id       = row["event_id"]
+                    alert_type     = row["alert_type"]
+                    pose_state     = row.get("pose_state", "")
                     still_duration = row.get("still_duration", 0)
-                    notes         = row.get("notes", "")
-                    transcript    = f"[CAMERA] {alert_type} detected — pose: {pose_state}, still for {still_duration}s. {notes}"
+                    notes          = row.get("notes", "")
+                    transcript     = f"[CAMERA] {alert_type} detected — pose: {pose_state}, still for {still_duration}s. {notes}"
                     print(f"  📷  Camera alert: {alert_type.upper()} detected!")
                     result = classify_camera(alert_type, pose_state, still_duration, notes)
-                    dispatch(event_id, transcript, "Unknown", result, source="CAMERA")
+                    dispatch(event_id, transcript, "Unknown", result,
+                             source="CAMERA", alert_type=alert_type)
                     seen_camera.add(event_id)
 
         except Exception as e:
