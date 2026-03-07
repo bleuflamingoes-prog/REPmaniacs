@@ -206,8 +206,12 @@ def dispatch(event_id: str, transcript: str, location: str, result: dict,
     print(f"{'='*60}\n")
 
     # Trigger geolocation for high urgency — opens Google Maps automatically
-    if urgency == "high":
-        trigger_dispatch("audio" if source == "VOICE" else "video")
+    if urgency in ("high", "medium", "low"):
+        trigger_dispatch(
+            "audio" if source == "VOICE" else "video",
+            team=team,
+            urgency=urgency
+    )
 
     # Save to ClickHouse
     save_dispatch_result(
