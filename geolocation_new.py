@@ -30,12 +30,12 @@ import math
 # ══════════════════════════════════════════════════════════
 
 DEVICE_LOCATION = {
-    "name":    "Home",
-    "address": "123 Bedok North Ave 1, #04-56, Singapore 460123",
-    "lat":     1.32450,    # Right-click your address on maps.google.com → copy lat
-    "lng":     103.92870,  # and paste here
-    "floor":   "Level 4, Unit 56",
-    "notes":   "Take lift to Level 4, turn left",
+    "name":    "this place",
+    "address": "11 Eunos Rd 8, Singapore 408601",
+    "lat":     1.3199696867409512,    # Right-click your address on maps.google.com → copy lat
+    "lng":    103.89233526275515,  # and paste here
+    "floor":   "Level 2",
+    "notes":   "Take lift to Level 2, turn left",
 }
 
 # ══════════════════════════════════════════════════════════
