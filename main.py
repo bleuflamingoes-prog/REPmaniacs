@@ -104,10 +104,10 @@ def run_live_mode():
 
     result = start_keyboard_listener(on_intentional_press=handle_help_request)
 
-    if result is None:
-        print("Keyboard listener failed. Running test mode instead.")
-        run_test_mode()
-        return
+    # if result is None:
+    #     print("Keyboard listener failed. Running test mode instead.")
+    #     run_test_mode()
+    #     return
 
     handler, listener = result
     try:
@@ -115,56 +115,56 @@ def run_live_mode():
     except KeyboardInterrupt:
         print("\nShutting down...")
 
-def run_test_mode():
-    print("\n" + "="*60)
-    print("TEST MODE - Testing all error scenarios")
-    print("="*60)
+# def run_test_mode():
+#     print("\n" + "="*60)
+#     print("TEST MODE - Testing all error scenarios")
+#     print("="*60)
 
-    # Test 1: No speech
-    print("\n[Test 1] Simulating NO SPEECH...")
-    result = check_audio_errors("", 0.9)
-    handle_audio_error(result)
-    time.sleep(3)
+#     # Test 1: No speech
+#     print("\n[Test 1] Simulating NO SPEECH...")
+#     result = check_audio_errors("", 0.9)
+#     handle_audio_error(result)
+#     time.sleep(3)
 
-    # Test 2: Choppy audio
-    print("\n[Test 2] Simulating CHOPPY AUDIO...")
-    result = check_audio_errors("help me please", 0.2)
-    handle_audio_error(result)
-    time.sleep(3)
+#     # Test 2: Choppy audio
+#     print("\n[Test 2] Simulating CHOPPY AUDIO...")
+#     result = check_audio_errors("help me please", 0.2)
+#     handle_audio_error(result)
+#     time.sleep(3)
 
-    # Test 3: Non-emergency
-    print("\n[Test 3] Simulating NON-EMERGENCY...")
-    result = check_audio_errors("I am hungry where is the toilet", 0.9)
-    handle_audio_error(result)
-    time.sleep(3)
+#     # Test 3: Non-emergency
+#     print("\n[Test 3] Simulating NON-EMERGENCY...")
+#     result = check_audio_errors("I am hungry where is the toilet", 0.9)
+#     handle_audio_error(result)
+#     time.sleep(3)
 
-    # Test 4: Valid emergency
-    print("\n[Test 4] Simulating VALID EMERGENCY...")
-    result = check_audio_errors("Help there are people outside my door I am scared", 0.9)
-    if not result["has_error"]:
-        print("Valid emergency - would trigger full recording pipeline.")
-        play_voice_alert("Help is on the way. Your request has been received.")
-    time.sleep(3)
+#     # Test 4: Valid emergency
+#     print("\n[Test 4] Simulating VALID EMERGENCY...")
+#     result = check_audio_errors("Help there are people outside my door I am scared", 0.9)
+#     if not result["has_error"]:
+#         print("Valid emergency - would trigger full recording pipeline.")
+#         play_voice_alert("Help is on the way. Your request has been received.")
+#     time.sleep(3)
 
-    # Test 5: Real mic press
-    print("\n[Test 5] Real button press - speak into mic when recording starts!")
-    time.sleep(1)
-    handler = ButtonHandler(on_intentional_press=handle_help_request)
-    handler.simulate_press(hold_duration=2.5)
+#     # Test 5: Real mic press
+#     print("\n[Test 5] Real button press - speak into mic when recording starts!")
+#     time.sleep(1)
+#     handler = ButtonHandler(on_intentional_press=handle_help_request)
+#     handler.simulate_press(hold_duration=2.5)
 
-    print("\nWaiting for processing to finish...")
-    time.sleep(RECORDING_DURATION + 20)
+#     print("\nWaiting for processing to finish...")
+#     time.sleep(RECORDING_DURATION + 20)
 
-    print("\nLatest entries in ClickHouse:")
-    events = get_recent_events(limit=5)
-    if events:
-        for event in events:
-            print("\n  " + event["timestamp"])
-            print("  Language:    " + event["language"])
-            print("  Transcript:  " + event["transcript"])
-            print("  Button type: " + event["button_type"])
-    else:
-        print("  (No ClickHouse data - that's ok if ClickHouse isn't running yet)")
+#     print("\nLatest entries in ClickHouse:")
+#     events = get_recent_events(limit=5)
+#     if events:
+#         for event in events:
+#             print("\n  " + event["timestamp"])
+#             print("  Language:    " + event["language"])
+#             print("  Transcript:  " + event["transcript"])
+#             print("  Button type: " + event["button_type"])
+#     else:
+#         print("  (No ClickHouse data - that's ok if ClickHouse isn't running yet)")
 
     get_stats()
 
@@ -193,9 +193,11 @@ if __name__ == "__main__":
     print("Setting up ClickHouse table...")
     setup_table()
 
+    run_live_mode()
+
     if args.view:
         view_stored_data()
-    elif args.test:
-        run_test_mode()
-    else:
-        run_live_mode()
+    # elif args.test:
+    #     run_test_mode()
+    # else:
+    #     run_live_mode()
